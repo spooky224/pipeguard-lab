@@ -1,0 +1,31 @@
+
+pipeline {
+    agent any
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+                sh 'echo "Commit under test: $(git rev-parse HEAD)"'
+            }
+        }
+
+        stage('Environment') {
+            steps {
+                sh 'python3 --version'
+            }
+        }
+
+        stage('Automated Tests') {
+            steps {
+                sh 'python3 -m unittest -v test_app.py'
+            }
+        }
+    }
+
+    post {
+        always {
+            echo "PipeGuard lab pipeline finished."
+        }
+    }
+}
