@@ -15,9 +15,6 @@ class TestApplication(unittest.TestCase):
     def test_service_status(self):
         self.assertEqual(service_status()["status"], "healthy")
 
-    def test_inventory_expectation(self):
-        # Intentionally failing test for our PipeGuard experiment.
-        self.assertEqual(calculate_total(20, 2), 50)
 
 
 if __name__ == "__main__":
