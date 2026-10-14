@@ -7,10 +7,10 @@ def calculate_total(price, quantity):
         quantity (int): Number of items. Must be non‑negative.
 
     Returns:
-        numeric: The total cost, computed as price multiplied by quantity.
+        numeric: The total cost, computed as ``price * quantity``.
 
     Raises:
-        ValueError: If either price or quantity is negative.
+        ValueError: If either ``price`` or ``quantity`` is negative.
     """
     if price < 0 or quantity < 0:
         raise ValueError("Price and quantity must be non-negative")
@@ -18,4 +18,10 @@ def calculate_total(price, quantity):
 
 
 def service_status():
+    """
+    Return a simple health status dictionary for the service.
+
+    Returns:
+        dict: Contains the service name and its health status.
+    """
     return {"service": "pipeguard-lab", "status": "healthy"}
