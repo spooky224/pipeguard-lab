@@ -72,7 +72,7 @@ PY
                 withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
                     sh '''
                         docker run --rm --network host \
-                          -e SONAR_HOST_URL="http://192.168.56.1:9000" \
+                          -e SONAR_HOST_URL="http://127.0.0.1:9000" \
                           -e SONAR_TOKEN="$SONAR_TOKEN" \
                           -v "$WORKSPACE:/usr/src" \
                           sonarsource/sonar-scanner-cli \
