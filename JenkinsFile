@@ -71,11 +71,22 @@ PY
             steps {
                 withCredentials([string(credentialsId: 'sonarqube-token', variable: 'SONAR_TOKEN')]) {
                     sh '''
-                        docker run --rm --network host \
-                          -e SONAR_HOST_URL="http://127.0.0.1:9000" \
-                          -e SONAR_TOKEN="$SONAR_TOKEN" \
-                          -v "$WORKSPACE:/usr/src" \
-                          sonarsource/sonar-scanner-cli \
+                        set -eu
+                        scanner_version=8.1.0.6389
+                        scanner_root="$HOME/.cache/sonar-scanner-cli"
+                        scanner_home="$scanner_root/sonar-scanner-${scanner_version}-linux-aarch64"
+                        scanner_zip="$scanner_root/sonar-scanner-cli-${scanner_version}-linux-aarch64.zip"
+
+                        if [ ! -x "$scanner_home/bin/sonar-scanner" ]; then
+                            mkdir -p "$scanner_root"
+                            curl -fsSL "https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${scanner_version}-linux-aarch64.zip" -o "$scanner_zip"
+                            python3 -m zipfile -e "$scanner_zip" "$scanner_root"
+                            rm -f "$scanner_zip"
+                        fi
+
+                        SONAR_HOST_URL="http://127.0.0.1:9000" \
+                        SONAR_TOKEN="$SONAR_TOKEN" \
+                          "$scanner_home/bin/sonar-scanner" \
                           -Dsonar.projectKey=pipeguard-lab \
                           -Dsonar.projectName=PipeGuard-Lab \
                           -Dsonar.sources=. \
