@@ -84,6 +84,11 @@ PY
                             rm -f "$scanner_zip"
                         fi
 
+                        chmod +x "$scanner_home/bin/sonar-scanner"
+                        if [ -f "$scanner_home/jre/bin/java" ]; then
+                            chmod +x "$scanner_home/jre/bin/java"
+                        fi
+
                         SONAR_HOST_URL="http://127.0.0.1:9000" \
                         SONAR_TOKEN="$SONAR_TOKEN" \
                           "$scanner_home/bin/sonar-scanner" \
