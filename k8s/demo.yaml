@@ -1,0 +1,73 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: pipeguard-lab
+  labels:
+    app.kubernetes.io/part-of: pipeguard
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pipeguard-lab
+  namespace: pipeguard-lab
+  labels:
+    app.kubernetes.io/name: pipeguard-lab
+    pipeguard_project: pipeguard-lab
+    pipeguard_build: manual-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: pipeguard-lab
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: pipeguard-lab
+        pipeguard_project: pipeguard-lab
+        pipeguard_build: manual-demo
+    spec:
+      containers:
+        - name: pipeguard-lab
+          image: pipeguard-lab:demo
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 2
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 20m
+              memory: 32Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pipeguard-lab
+  namespace: pipeguard-lab
+  labels:
+    app.kubernetes.io/name: pipeguard-lab
+    pipeguard_project: pipeguard-lab
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: pipeguard-lab
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http
+      protocol: TCP

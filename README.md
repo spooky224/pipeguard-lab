@@ -22,3 +22,32 @@ Run the unit tests locally with:
 ```bash
 python3 -m unittest -v test_app.py
 ```
+
+## Kubernetes demo connection
+
+PipeGuard can connect directly to a Kubernetes API and show live deployments, pods, services, and warning events for one namespace. For the local demo, the cluster is a single-node `kind` cluster running in Docker Desktop; Jenkins and the observability VM remain separate.
+
+Build and deploy the current lab image:
+
+```bash
+docker build -t pipeguard-lab:demo .
+../PipeGuard/.tools/kind load docker-image pipeguard-lab:demo --name pipeguard-demo
+kubectl --context kind-pipeguard-demo apply -f k8s/demo.yaml
+kubectl --context kind-pipeguard-demo -n pipeguard-lab rollout status deployment/pipeguard-lab
+```
+
+Create the namespace-scoped read-only identity:
+
+```bash
+kubectl --context kind-pipeguard-demo apply -f k8s/pipeguard-reader.yaml
+kubectl --context kind-pipeguard-demo -n pipeguard-lab auth can-i list pods --as=system:serviceaccount:pipeguard-lab:pipeguard-reader
+kubectl --context kind-pipeguard-demo -n pipeguard-lab auth can-i get secrets --as=system:serviceaccount:pipeguard-lab:pipeguard-reader
+```
+
+The first authorization check should say `yes`; the secret check should say `no`. Generate an expiring token for the connection:
+
+```bash
+kubectl --context kind-pipeguard-demo -n pipeguard-lab create token pipeguard-reader --duration=8h
+```
+
+In PipeGuard **Settings → Kubernetes**, enter the API URL from `kubectl config view --minify -o jsonpath='{.clusters[0].cluster.server}'`, namespace `pipeguard-lab`, that token, and the CA PEM decoded from `kubectl config view --raw --minify -o jsonpath='{.clusters[0].cluster.certificate-authority-data}' | base64 -D`. The credentials are held in memory for the current PipeGuard session.
