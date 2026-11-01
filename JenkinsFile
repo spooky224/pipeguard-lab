@@ -101,6 +101,24 @@ PY
             }
         }
 
+        stage('Trivy image vulnerability scan') {
+            steps {
+                sh '''
+                    set -eu
+                    mkdir -p reports "$HOME/.cache/trivy"
+                    docker run --rm \
+                      -v /var/run/docker.sock:/var/run/docker.sock \
+                      -v "$WORKSPACE:/work" \
+                      -v "$HOME/.cache/trivy:/root/.cache/" \
+                      ghcr.io/aquasecurity/trivy:0.69.3@sha256:bcc376de8d77cfe086a917230e818dc9f8528e3c852f7b1aff648949b6258d1c \
+                      image --scanners vuln \
+                      --format json \
+                      --output /work/reports/trivy-image.json \
+                      "$LAB_IMAGE:$BUILD_NUMBER"
+                '''
+            }
+        }
+
         stage('Automated Tests') {
             steps {
                 // Keep the existing intentional failure as a known incident signal.
@@ -111,6 +129,7 @@ PY
 
     post {
         always {
+            archiveArtifacts artifacts: 'reports/trivy-image.json', allowEmptyArchive: true, fingerprint: true
             // Give Alloy time to discover the labeled container and ship its last logs.
             sh '''
                 sleep 10
