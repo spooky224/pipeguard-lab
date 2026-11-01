@@ -1,6 +1,14 @@
-
 pipeline {
     agent any
+
+    options {
+        disableConcurrentBuilds()
+    }
+
+    environment {
+        LAB_IMAGE = 'pipeguard-lab'
+        LAB_PORT = '18080'
+    }
 
     stages {
         stage('Checkout') {
@@ -13,11 +21,55 @@ pipeline {
         stage('Environment') {
             steps {
                 sh 'python3 --version'
+                sh 'docker --version'
+                sh 'docker info >/dev/null'
+            }
+        }
+
+        stage('Build service image') {
+            steps {
+                sh 'docker build --tag "$LAB_IMAGE:$BUILD_NUMBER" .'
+            }
+        }
+
+        stage('Start and exercise service') {
+            steps {
+                sh '''
+                    set -eu
+                    container="pipeguard-lab-${BUILD_NUMBER}"
+                    docker rm -f "$container" >/dev/null 2>&1 || true
+                    docker run --detach \\
+                      --name "$container" \\
+                      --label pipeguard_project=pipeguard-lab \\
+                      --label pipeguard_build="$BUILD_NUMBER" \\
+                      --publish "127.0.0.1:${LAB_PORT}:8080" \\
+                      "$LAB_IMAGE:$BUILD_NUMBER"
+
+                    python3 - <<'PY'
+import time
+from urllib.request import urlopen
+
+url = 'http://127.0.0.1:18080/health'
+for attempt in range(20):
+    try:
+        with urlopen(url, timeout=2) as response:
+            print(response.read().decode())
+        break
+    except Exception:
+        if attempt == 19:
+            raise
+        time.sleep(1)
+
+with urlopen('http://127.0.0.1:18080/calculate?price=20&quantity=2', timeout=3) as response:
+    print(response.read().decode())
+PY
+                '''
             }
         }
 
         stage('Automated Tests') {
             steps {
+                // Keep the existing intentional failure as a known incident signal.
                 sh 'python3 -m unittest -v test_app.py'
             }
         }
@@ -25,7 +77,13 @@ pipeline {
 
     post {
         always {
-            echo "PipeGuard lab pipeline finished."
+            // Give Alloy time to discover the labeled container and ship its last logs.
+            sh '''
+                sleep 10
+                docker rm -f "pipeguard-lab-${BUILD_NUMBER}" >/dev/null 2>&1 || true
+                docker image rm "$LAB_IMAGE:$BUILD_NUMBER" >/dev/null 2>&1 || true
+            '''
+            echo 'PipeGuard lab pipeline finished; its test container was cleaned up.'
         }
     }
 }
