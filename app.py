@@ -11,10 +11,13 @@ logger = logging.getLogger("pipeguard_lab")
 def calculate_total(price, quantity):
     """
     Calculate the total cost for a given price and quantity.
+
+    The total is the product of ``price`` and ``quantity``. Both values must
+    be non‑negative; otherwise a :class:`ValueError` is raised.
     """
     if price < 0 or quantity < 0:
         raise ValueError("Price and quantity must be non-negative")
-    return price * quantity + 1
+    return price * quantity
 
 
 def service_status():
